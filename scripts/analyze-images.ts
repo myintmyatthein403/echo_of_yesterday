@@ -1,16 +1,18 @@
 /**
  * Script to analyze images using Gemini API and update data.ts
- * 
+ *
  * Usage:
  * 1. Set NEXT_PUBLIC_GEMINI_API_KEY in .env.local
  * 2. Run: npx tsx scripts/analyze-images.ts
  */
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import * as fs from 'fs';
-import * as path from 'path';
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import * as fs from "fs";
+import * as path from "path";
 
-const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY || '');
+const genAI = new GoogleGenerativeAI(
+  process.env.NEXT_PUBLIC_GEMINI_API_KEY || "",
+);
 
 interface ImageInfo {
   id: string;
@@ -20,13 +22,17 @@ interface ImageInfo {
 
 async function analyzeImage(imagePath: string, imageInfo: ImageInfo) {
   try {
-    console.log(`\n📸 Analyzing image: ${imageInfo.id} - ${imageInfo.currentData.title || 'Untitled'}`);
-    
-    // Read image file
-    const imageBuffer = fs.readFileSync(path.join(process.cwd(), 'public', imagePath));
-    const base64Image = imageBuffer.toString('base64');
+    console.log(
+      `\n📸 Analyzing image: ${imageInfo.id} - ${imageInfo.currentData.title || "Untitled"}`,
+    );
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    // Read image file
+    const imageBuffer = fs.readFileSync(
+      path.join(process.cwd(), "public", imagePath),
+    );
+    const base64Image = imageBuffer.toString("base64");
+
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const prompt = `Analyze this historical image from Myanmar and provide detailed information in the following JSON format:
 
@@ -56,7 +62,7 @@ Respond ONLY with valid JSON, no additional text or markdown.`;
       {
         inlineData: {
           data: base64Image,
-          mimeType: 'image/jpeg',
+          mimeType: "image/jpeg",
         },
       },
     ]);
@@ -67,18 +73,18 @@ Respond ONLY with valid JSON, no additional text or markdown.`;
     // Parse JSON response
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      throw new Error('No JSON found in response');
+      throw new Error("No JSON found in response");
     }
 
     const analysis = JSON.parse(jsonMatch[0]);
 
     // Display results
-    console.log('✅ Analysis complete:');
+    console.log("✅ Analysis complete:");
     console.log(`   Title: ${analysis.title}`);
-    console.log(`   Year: ${analysis.year || 'Unknown'}`);
-    console.log(`   Location: ${analysis.location || 'Unknown'}`);
+    console.log(`   Year: ${analysis.year || "Unknown"}`);
+    console.log(`   Location: ${analysis.location || "Unknown"}`);
     console.log(`   Category: ${analysis.category}`);
-    console.log(`   Tags: ${analysis.tags?.join(', ') || 'None'}`);
+    console.log(`   Tags: ${analysis.tags?.join(", ") || "None"}`);
 
     return analysis;
   } catch (error: any) {
@@ -88,37 +94,41 @@ Respond ONLY with valid JSON, no additional text or markdown.`;
 }
 
 async function main() {
-  console.log('🚀 Starting image analysis with Gemini API...\n');
+  console.log("🚀 Starting image analysis with Gemini API...\n");
 
   // Check API key
   if (!process.env.NEXT_PUBLIC_GEMINI_API_KEY) {
-    console.error('❌ Error: NEXT_PUBLIC_GEMINI_API_KEY not found in environment variables');
-    console.log('\nPlease create a .env.local file with:');
-    console.log('NEXT_PUBLIC_GEMINI_API_KEY=your_api_key_here\n');
+    console.error(
+      "❌ Error: NEXT_PUBLIC_GEMINI_API_KEY not found in environment variables",
+    );
+    console.log("\nPlease create a .env.local file with:");
+    console.log("NEXT_PUBLIC_GEMINI_API_KEY=your_api_key_here\n");
     process.exit(1);
   }
 
   // Read current data
-  const dataPath = path.join(process.cwd(), 'lib', 'data.ts');
-  const dataContent = fs.readFileSync(dataPath, 'utf-8');
+  const dataPath = path.join(process.cwd(), "lib", "data.ts");
+  const dataContent = fs.readFileSync(dataPath, "utf-8");
 
   // Extract image URLs from data.ts
-  const imageMatches = dataContent.matchAll(/id:\s*['"]([^'"]+)['"].*?imageUrl:\s*['"]([^'"]+)['"]/gs);
+  const imageMatches = dataContent.matchAll(
+    /id:\s*['"]([^'"]+)['"].*?imageUrl:\s*['"]([^'"]+)['"]/gs,
+  );
   const images: ImageInfo[] = [];
 
   for (const match of imageMatches) {
     const id = match[1];
     const imageUrl = match[2];
-    
+
     // Skip placeholder images
-    if (imageUrl.startsWith('data:image')) {
+    if (imageUrl.startsWith("data:image")) {
       continue;
     }
 
     // Extract current data for this image
-    const idRegex = new RegExp(`id:\\s*['"]${id}['"][\\s\\S]*?\\},`, 'g');
+    const idRegex = new RegExp(`id:\\s*['"]${id}['"][\\s\\S]*?\\},`, "g");
     const imageDataMatch = dataContent.match(idRegex);
-    
+
     images.push({
       id,
       imageUrl,
@@ -127,7 +137,7 @@ async function main() {
   }
 
   if (images.length === 0) {
-    console.log('No images found to analyze.');
+    console.log("No images found to analyze.");
     return;
   }
 
@@ -137,12 +147,14 @@ async function main() {
   const results: Array<{ id: string; analysis: any }> = [];
 
   for (const imageInfo of images) {
-    const imagePath = imageInfo.imageUrl.replace(/^\//, ''); // Remove leading slash
-    
+    const imagePath = imageInfo.imageUrl.replace(/^\//, ""); // Remove leading slash
+
     // Check if file exists
-    const fullPath = path.join(process.cwd(), 'public', imagePath);
+    const fullPath = path.join(process.cwd(), "public", imagePath);
     if (!fs.existsSync(fullPath)) {
-      console.log(`⚠️  Skipping ${imageInfo.id}: File not found at ${imagePath}`);
+      console.log(
+        `⚠️  Skipping ${imageInfo.id}: File not found at ${imagePath}`,
+      );
       continue;
     }
 
@@ -152,14 +164,15 @@ async function main() {
     }
 
     // Rate limiting - wait 1 second between requests
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
   }
 
   // Display summary
-  console.log('\n📊 Analysis Summary:');
+  console.log("\n📊 Analysis Summary:");
   console.log(`   Total analyzed: ${results.length}`);
-  console.log('\n💡 Copy the analysis results and update lib/data.ts manually, or use the web interface at /image/[id]');
+  console.log(
+    "\n💡 Copy the analysis results and update lib/data.ts manually, or use the web interface at /image/[id]",
+  );
 }
 
 main().catch(console.error);
-
