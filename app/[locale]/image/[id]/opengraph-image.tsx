@@ -2,7 +2,6 @@ import { ImageResponse } from 'next/og';
 import { sampleImages } from '@/lib/data';
 import { getLocalizedTitle } from '@/lib/data-utils';
 
-export const runtime = 'edge';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
@@ -38,7 +37,7 @@ export default async function ImageOg({ params }: Props) {
             fontFamily: 'serif',
           }}
         >
-          Echoes of Yesterday · {year}
+          {`Echoes of Yesterday · ${year}`}
         </div>
         <div
           style={{
